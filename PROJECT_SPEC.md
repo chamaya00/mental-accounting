@@ -760,7 +760,7 @@ const generatePremiumMessage = async (avatar, betContext) => {
 ### Phase 1: Core Loop
 
 - [ ] Supabase project + run schema SQL
-- [ ] Next.js project with Supabase client
+- [ ] Initialize Next.js project using `npx create-next-app -e with-supabase` (ensures auth is configured correctly from the start)
 - [ ] Google OAuth only
 - [ ] Dashboard showing balance
 - [ ] Create bet flow
