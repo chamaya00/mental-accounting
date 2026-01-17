@@ -4,8 +4,20 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const token_hash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
   const next = searchParams.get('next') ?? '/dashboard'
 
+  // Handle email OTP verification (redirect to confirm route)
+  if (token_hash && type) {
+    const confirmUrl = new URL('/auth/confirm', origin)
+    confirmUrl.searchParams.set('token_hash', token_hash)
+    confirmUrl.searchParams.set('type', type)
+    confirmUrl.searchParams.set('next', next)
+    return NextResponse.redirect(confirmUrl)
+  }
+
+  // Handle OAuth code exchange
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -23,5 +35,5 @@ export async function GET(request: Request) {
   }
 
   // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=Could not authenticate user`)
+  return NextResponse.redirect(`${origin}/auth/error?error=${encodeURIComponent('Could not authenticate user')}`)
 }
