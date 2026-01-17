@@ -4,6 +4,61 @@
 -- ============================================
 
 -- ============================================
+-- AVATARS (must be created before profiles due to FK)
+-- ============================================
+create table public.avatars (
+  id serial primary key,
+  emoji text not null,
+  name text not null,
+  category text not null check (category in ('starter', 'motivator', 'legend', 'premium')),
+  price integer not null default 0,
+  personality_voice text, -- e.g., "calm and zen-like", "high energy coach"
+  is_premium boolean default false, -- premium avatars use on-device LLM
+  encouragement_messages text[], -- canned messages for non-premium
+  created_at timestamp with time zone default now()
+);
+
+-- Seed starter avatars (free, canned messages)
+insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
+  ('🐙', 'Cosmo', 'starter', 0, 'calm and zen-like', false,
+   array['One tentacle at a time.', 'Slow and steady wins the race.', 'You are doing great, keep flowing.', 'Breathe. Focus. Achieve.', 'The ocean rewards patience.']),
+  ('🦊', 'Felix', 'starter', 0, 'clever and encouraging', false,
+   array['Clever moves win the game!', 'Outsmart yesterday''s you.', 'Quick thinking, strong doing.', 'You''ve got the smarts for this.', 'Stay sharp, stay winning.']),
+  ('🐻', 'Bruno', 'starter', 0, 'warm and supportive', false,
+   array['Big bear hug energy for you!', 'You''re stronger than you know.', 'Keep going, I believe in you.', 'Cozy up to your goals.', 'Hibernate later, hustle now.']),
+  ('🐱', 'Mochi', 'starter', 0, 'playful and cute', false,
+   array['Purrfect effort today!', 'You''re the cat''s meow!', 'Land on your feet, always.', 'Curiosity leads to success.', 'Nine lives worth of tries!']);
+
+-- Seed motivator avatars (paid, canned messages)
+insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
+  ('🦁', 'Coach Leo', 'motivator', 200, 'high energy coach', false,
+   array['Champions show up EVERY day!', 'No excuses, only results!', 'You were BORN for this!', 'Leave it all on the field!', 'ROAR your way to victory!']),
+  ('🦉', 'Wise Owl', 'motivator', 200, 'thoughtful and wise', false,
+   array['Progress, not perfection.', 'Wisdom is doing it anyway.', 'The night is darkest before dawn.', 'Knowledge without action is nothing.', 'Patience is a superpower.']),
+  ('🐕', 'Buddy', 'motivator', 200, 'loyal and enthusiastic', false,
+   array['You got this, best friend!', 'I''ll never stop believing in you!', 'Tail wagging for your success!', 'Fetch those goals!', 'Good human, GREAT effort!']),
+  ('🦋', 'Grace', 'motivator', 200, 'transformative and uplifting', false,
+   array['Transform and rise.', 'Your wings are ready.', 'Beauty comes from struggle.', 'Emerge stronger today.', 'Float above the doubts.']);
+
+-- Seed legend avatars (expensive, canned messages)
+insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
+  ('🐉', 'Dragon', 'legend', 500, 'epic and powerful', false,
+   array['You are UNSTOPPABLE.', 'Forged in fire, ready for anything.', 'Breathe fire on your doubts.', 'Legends are made, not born.', 'Rule your kingdom.']),
+  ('🦅', 'Phoenix', 'legend', 500, 'resilient and inspiring', false,
+   array['Rise from the ashes.', 'Every setback is a setup.', 'Born to soar again.', 'The fire only makes you stronger.', 'Rebirth is your superpower.']),
+  ('🐺', 'Alpha', 'legend', 500, 'leader and determined', false,
+   array['Lead the pack.', 'Lone wolves don''t win—you do.', 'Hunt your goals relentlessly.', 'The pack follows strength.', 'Howl at your victories.']),
+  ('🦄', 'Mystic', 'legend', 500, 'magical and believing', false,
+   array['Believe in the impossible.', 'Magic is just effort in disguise.', 'Your dreams are valid.', 'Sparkle through the struggle.', 'Rare and unstoppable—that''s you.']);
+
+-- Premium avatars (use on-device LLM for custom messages)
+insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
+  ('🧙', 'Sage', 'premium', 1000, 'You are Sage, a wise and mystical mentor who speaks in thoughtful metaphors. You reference the user''s specific habit and progress. Keep messages under 20 words. Be profound but warm.', true, null),
+  ('🤖', 'Axiom', 'premium', 1000, 'You are Axiom, a friendly AI companion who is analytical but encouraging. Reference the user''s streak data and statistics. Keep messages under 20 words. Be logical but supportive.', true, null),
+  ('👑', 'Royal', 'premium', 2000, 'You are Royal, a regal and dignified monarch who treats the user as worthy of greatness. Reference their specific commitment. Keep messages under 20 words. Be noble and inspiring.', true, null),
+  ('🌟', 'Nova', 'premium', 2000, 'You are Nova, a cosmic being of pure energy and optimism. Reference the user''s habit and frame it as part of their larger journey. Keep messages under 20 words. Be cosmic and uplifting.', true, null);
+
+-- ============================================
 -- PROFILES (extends Supabase auth.users)
 -- ============================================
 create table public.profiles (
@@ -71,61 +126,6 @@ create table public.supports (
 
 create index supports_bet_id_idx on public.supports(bet_id);
 create index supports_supporter_id_idx on public.supports(supporter_id);
-
--- ============================================
--- AVATARS
--- ============================================
-create table public.avatars (
-  id serial primary key,
-  emoji text not null,
-  name text not null,
-  category text not null check (category in ('starter', 'motivator', 'legend', 'premium')),
-  price integer not null default 0,
-  personality_voice text, -- e.g., "calm and zen-like", "high energy coach"
-  is_premium boolean default false, -- premium avatars use on-device LLM
-  encouragement_messages text[], -- canned messages for non-premium
-  created_at timestamp with time zone default now()
-);
-
--- Seed starter avatars (free, canned messages)
-insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
-  ('🐙', 'Cosmo', 'starter', 0, 'calm and zen-like', false,
-   array['One tentacle at a time.', 'Slow and steady wins the race.', 'You are doing great, keep flowing.', 'Breathe. Focus. Achieve.', 'The ocean rewards patience.']),
-  ('🦊', 'Felix', 'starter', 0, 'clever and encouraging', false,
-   array['Clever moves win the game!', 'Outsmart yesterday''s you.', 'Quick thinking, strong doing.', 'You''ve got the smarts for this.', 'Stay sharp, stay winning.']),
-  ('🐻', 'Bruno', 'starter', 0, 'warm and supportive', false,
-   array['Big bear hug energy for you!', 'You''re stronger than you know.', 'Keep going, I believe in you.', 'Cozy up to your goals.', 'Hibernate later, hustle now.']),
-  ('🐱', 'Mochi', 'starter', 0, 'playful and cute', false,
-   array['Purrfect effort today!', 'You''re the cat''s meow!', 'Land on your feet, always.', 'Curiosity leads to success.', 'Nine lives worth of tries!']);
-
--- Seed motivator avatars (paid, canned messages)
-insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
-  ('🦁', 'Coach Leo', 'motivator', 200, 'high energy coach', false,
-   array['Champions show up EVERY day!', 'No excuses, only results!', 'You were BORN for this!', 'Leave it all on the field!', 'ROAR your way to victory!']),
-  ('🦉', 'Wise Owl', 'motivator', 200, 'thoughtful and wise', false,
-   array['Progress, not perfection.', 'Wisdom is doing it anyway.', 'The night is darkest before dawn.', 'Knowledge without action is nothing.', 'Patience is a superpower.']),
-  ('🐕', 'Buddy', 'motivator', 200, 'loyal and enthusiastic', false,
-   array['You got this, best friend!', 'I''ll never stop believing in you!', 'Tail wagging for your success!', 'Fetch those goals!', 'Good human, GREAT effort!']),
-  ('🦋', 'Grace', 'motivator', 200, 'transformative and uplifting', false,
-   array['Transform and rise.', 'Your wings are ready.', 'Beauty comes from struggle.', 'Emerge stronger today.', 'Float above the doubts.']);
-
--- Seed legend avatars (expensive, canned messages)
-insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
-  ('🐉', 'Dragon', 'legend', 500, 'epic and powerful', false,
-   array['You are UNSTOPPABLE.', 'Forged in fire, ready for anything.', 'Breathe fire on your doubts.', 'Legends are made, not born.', 'Rule your kingdom.']),
-  ('🦅', 'Phoenix', 'legend', 500, 'resilient and inspiring', false,
-   array['Rise from the ashes.', 'Every setback is a setup.', 'Born to soar again.', 'The fire only makes you stronger.', 'Rebirth is your superpower.']),
-  ('🐺', 'Alpha', 'legend', 500, 'leader and determined', false,
-   array['Lead the pack.', 'Lone wolves don''t win—you do.', 'Hunt your goals relentlessly.', 'The pack follows strength.', 'Howl at your victories.']),
-  ('🦄', 'Mystic', 'legend', 500, 'magical and believing', false,
-   array['Believe in the impossible.', 'Magic is just effort in disguise.', 'Your dreams are valid.', 'Sparkle through the struggle.', 'Rare and unstoppable—that''s you.']);
-
--- Premium avatars (use on-device LLM for custom messages)
-insert into public.avatars (emoji, name, category, price, personality_voice, is_premium, encouragement_messages) values
-  ('🧙', 'Sage', 'premium', 1000, 'You are Sage, a wise and mystical mentor who speaks in thoughtful metaphors. You reference the user''s specific habit and progress. Keep messages under 20 words. Be profound but warm.', true, null),
-  ('🤖', 'Axiom', 'premium', 1000, 'You are Axiom, a friendly AI companion who is analytical but encouraging. Reference the user''s streak data and statistics. Keep messages under 20 words. Be logical but supportive.', true, null),
-  ('👑', 'Royal', 'premium', 2000, 'You are Royal, a regal and dignified monarch who treats the user as worthy of greatness. Reference their specific commitment. Keep messages under 20 words. Be noble and inspiring.', true, null),
-  ('🌟', 'Nova', 'premium', 2000, 'You are Nova, a cosmic being of pure energy and optimism. Reference the user''s habit and frame it as part of their larger journey. Keep messages under 20 words. Be cosmic and uplifting.', true, null);
 
 -- ============================================
 -- USER AVATARS (owned)
