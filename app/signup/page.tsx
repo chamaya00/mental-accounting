@@ -2,40 +2,53 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-function LoginContent() {
-  const searchParams = useSearchParams()
+export default function SignupPage() {
   const router = useRouter()
-  const urlError = searchParams.get('error')
-  const message = searchParams.get('message')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      setIsLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const supabase = createClient()
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
-      if (signInError) {
-        throw signInError
+      if (signUpError) {
+        throw signUpError
       }
 
-      router.push('/dashboard')
+      setEmailSent(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign in')
+      setError(err instanceof Error ? err.message : 'Failed to sign up')
     } finally {
       setIsLoading(false)
     }
@@ -51,32 +64,53 @@ function LoginContent() {
     })
   }
 
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="text-6xl mb-4">📧</div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
+            <p className="text-gray-600 mb-6">
+              We&apos;ve sent a confirmation link to <strong>{email}</strong>.
+              Click the link to activate your account and start betting on yourself!
+            </p>
+            <div className="bg-amber-50 rounded-lg p-4 text-sm text-amber-800">
+              <p className="font-medium mb-1">Didn&apos;t receive the email?</p>
+              <p>Check your spam folder or try signing up again.</p>
+            </div>
+            <Link
+              href="/login"
+              className="inline-block mt-6 text-amber-600 hover:text-amber-700 font-medium"
+            >
+              Back to login
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">🎯</div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
             <p className="text-gray-600">
-              Sign in to continue betting on yourself
+              Start your habit journey with 1,000 Gold Coins
             </p>
           </div>
 
-          {message && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-              {message}
-            </div>
-          )}
-
-          {(error || urlError) && (
+          {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error || urlError}
+              {error}
             </div>
           )}
 
           {/* Email/Password Form */}
-          <form onSubmit={handleEmailLogin} className="space-y-4 mb-6">
+          <form onSubmit={handleSignup} className="space-y-4 mb-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -92,24 +126,32 @@ function LoginContent() {
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-amber-600 hover:text-amber-700"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
+                placeholder="At least 6 characters"
                 required
+                minLength={6}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                required
+                minLength={6}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
               />
             </div>
@@ -118,7 +160,7 @@ function LoginContent() {
               disabled={isLoading}
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 
@@ -132,7 +174,7 @@ function LoginContent() {
             </div>
           </div>
 
-          {/* Google Login */}
+          {/* Google Signup */}
           <button
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 rounded-xl px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-300 transition-all"
@@ -158,42 +200,21 @@ function LoginContent() {
             Google
           </button>
 
-          {/* Sign Up Link */}
+          {/* Login Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-amber-600 hover:text-amber-700 font-medium">
-                Sign up
+              Already have an account?{' '}
+              <Link href="/login" className="text-amber-600 hover:text-amber-700 font-medium">
+                Sign in
               </Link>
             </p>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <div className="flex items-center justify-center gap-6 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🪙</span>
-                <span>1,000 GC to start</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🎁</span>
-                <span>200 GC daily</span>
-              </div>
-            </div>
+          <div className="mt-6 text-center text-xs text-gray-500">
+            By creating an account, you agree to our Terms of Service and Privacy Policy
           </div>
         </div>
       </div>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    }>
-      <LoginContent />
-    </Suspense>
   )
 }
