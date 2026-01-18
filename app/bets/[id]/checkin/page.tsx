@@ -82,6 +82,8 @@ export default function CheckinPage({
 
     try {
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: rpcError } = await (supabase.rpc as any)('checkin_week', {
         p_bet_id: id,
@@ -90,6 +92,25 @@ export default function CheckinPage({
 
       if (rpcError) {
         throw rpcError
+      }
+
+      // Send buddy email notification if enabled
+      if (notifyBuddy && bet?.buddy_email && user) {
+        try {
+          await fetch('/api/email/buddy', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              betId: id,
+              userId: user.id,
+            }),
+          })
+        } catch (emailError) {
+          // Don't fail the check-in if email fails
+          console.error('Failed to send buddy notification:', emailError)
+        }
       }
 
       setSuccess(true)

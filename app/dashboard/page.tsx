@@ -45,6 +45,13 @@ export default async function DashboardPage() {
     .order('completed_at', { ascending: false })
     .limit(5)
 
+  // Fetch recent wall events for community activity
+  const { data: recentWallEvents } = await supabase
+    .from('wall_events')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
   // Get random encouragement from avatar
   const encouragement = avatar?.encouragement_messages
     ? avatar.encouragement_messages[Math.floor(Math.random() * avatar.encouragement_messages.length)]
@@ -70,7 +77,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Link
             href="/new-bet"
             className="flex items-center gap-4 bg-white p-6 rounded-xl border-2 border-dashed border-amber-300 hover:border-amber-500 hover:bg-amber-50 transition-all"
@@ -79,6 +86,17 @@ export default async function DashboardPage() {
             <div>
               <h2 className="font-bold text-gray-900">Create New Bet</h2>
               <p className="text-sm text-gray-600">Stake coins on a new habit</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/wall"
+            className="flex items-center gap-4 bg-white p-6 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
+          >
+            <div className="text-4xl">📜</div>
+            <div>
+              <h2 className="font-bold text-gray-900">Community Wall</h2>
+              <p className="text-sm text-gray-600">See what others are betting on</p>
             </div>
           </Link>
 
@@ -173,7 +191,7 @@ export default async function DashboardPage() {
 
         {/* Recent Completed Bets */}
         {recentBets && recentBets.length > 0 && (
-          <section>
+          <section className="mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Results</h2>
             <div className="space-y-3">
               {recentBets.map((bet) => (
@@ -211,6 +229,54 @@ export default async function DashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Community Activity Preview */}
+        {recentWallEvents && recentWallEvents.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Community Activity</h2>
+              <Link href="/wall" className="text-sm text-amber-600 hover:text-amber-700 font-medium">
+                View all →
+              </Link>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+              {recentWallEvents.slice(0, 3).map((event) => {
+                const metadata = event.metadata as Record<string, unknown>
+                return (
+                  <div key={event.id} className="p-4 flex items-center gap-3">
+                    <span className="text-2xl">
+                      {event.event_type === 'signup' && '🎉'}
+                      {event.event_type === 'bet_created' && '🎯'}
+                      {event.event_type === 'bet_won' && '🏆'}
+                      {event.event_type === 'bet_lost' && '💔'}
+                      {event.event_type === 'milestone' && '⭐'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 truncate">
+                        {event.event_type === 'signup' && 'New member joined!'}
+                        {event.event_type === 'bet_created' && `New bet: ${metadata.habit}`}
+                        {event.event_type === 'bet_won' && `Bet completed: ${metadata.habit}`}
+                        {event.event_type === 'bet_lost' && `Bet missed: ${metadata.habit}`}
+                        {event.event_type === 'milestone' && (metadata.description as string)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(event.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {event.event_type === 'bet_created' && (
+                      <Link
+                        href={`/bets/${event.bet_id}/support`}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap"
+                      >
+                        Support →
+                      </Link>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </section>
         )}

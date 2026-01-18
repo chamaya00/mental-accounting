@@ -2,6 +2,23 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 
+type SupportWithProfile = {
+  id: string
+  bet_id: string
+  supporter_id: string
+  stake_amount: number
+  payout_amount: number | null
+  created_at: string
+  profiles: {
+    id: string
+    display_name: string | null
+    avatars: {
+      emoji: string
+      name: string
+    } | null
+  } | null
+}
+
 export default async function BetDetailPage({
   params,
 }: {
@@ -43,11 +60,33 @@ export default async function BetDetailPage({
         .single()
     : { data: null }
 
+  // Fetch supporters
+  const { data: supports } = await supabase
+    .from('supports')
+    .select('*, profiles(id, display_name, avatars(emoji, name))')
+    .eq('bet_id', id)
+    .order('created_at', { ascending: false })
+
   const currentCheckin = bet.checkins?.find(
     (c: { week_number: number }) => c.week_number === bet.current_week
   )
   const canCheckIn = bet.status === 'active' && currentCheckin && !currentCheckin.completed
   const isOwner = bet.user_id === user.id
+
+  // Check if user can support this bet
+  const canSupport = () => {
+    if (isOwner) return false
+    if (bet.status !== 'active') return false
+    // Check if user already supports
+    if (supports?.some((s: SupportWithProfile) => s.supporter_id === user.id)) return false
+    // Check if less than 2 weeks old
+    const betDate = new Date(bet.created_at)
+    const twoWeeksAgo = new Date()
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+    return betDate > twoWeeksAgo
+  }
+
+  const totalSupportStake = supports?.reduce((sum: number, s: SupportWithProfile) => sum + s.stake_amount, 0) ?? 0
 
   // Get encouragement message
   const encouragement = avatar?.encouragement_messages
@@ -211,6 +250,81 @@ export default async function BetDetailPage({
             </div>
           </div>
         )}
+
+        {/* Supporters Section */}
+        <div className="mt-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🤝</span>
+                <h2 className="font-semibold text-gray-900">Supporters</h2>
+                {supports && supports.length > 0 && (
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                    {supports.length}
+                  </span>
+                )}
+              </div>
+              {totalSupportStake > 0 && (
+                <div className="text-sm text-gray-600">
+                  Total: <span className="font-semibold text-amber-600">{totalSupportStake} GC</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {supports && supports.length > 0 ? (
+            <div className="divide-y divide-gray-100">
+              {(supports as SupportWithProfile[]).map((support) => (
+                <div key={support.id} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{support.profiles?.avatars?.emoji ?? '👤'}</span>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {support.profiles?.display_name ?? 'Anonymous'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(support.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 font-semibold text-amber-600">
+                      <span>🪙</span>
+                      <span>{support.stake_amount} GC</span>
+                    </div>
+                    {bet.status === 'won' && support.payout_amount && (
+                      <p className="text-xs text-green-600">Won +{support.payout_amount} GC</p>
+                    )}
+                    {bet.status === 'lost' && (
+                      <p className="text-xs text-red-600">Lost</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <p className="text-gray-500 mb-3">No supporters yet</p>
+              {canSupport() && (
+                <p className="text-sm text-gray-400">
+                  Share this bet to get support from friends!
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Support Button for non-owners */}
+          {canSupport() && (
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <Link
+                href={`/bets/${bet.id}/support`}
+                className="block w-full text-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold py-3 rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all"
+              >
+                Support This Bet
+              </Link>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   )
