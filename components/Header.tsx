@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
@@ -13,6 +14,8 @@ interface HeaderProps {
 export default function Header({ profile, avatar }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const [shopMenuOpen, setShopMenuOpen] = useState(false)
+  const shopMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -21,6 +24,18 @@ export default function Header({ profile, avatar }: HeaderProps) {
   }
 
   const isActive = (path: string) => pathname === path
+  const isShopActive = pathname === '/avatar-mall' || pathname === '/collectibles-mall'
+
+  // Close shop menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (shopMenuRef.current && !shopMenuRef.current.contains(event.target as Node)) {
+        setShopMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <header className="bg-white border-b border-gray-200">
@@ -67,6 +82,50 @@ export default function Header({ profile, avatar }: HeaderProps) {
                 <span>📋</span>
                 <span className="hidden sm:inline">My Bets</span>
               </Link>
+
+              {/* Shop Dropdown */}
+              <div className="relative" ref={shopMenuRef}>
+                <button
+                  onClick={() => setShopMenuOpen(!shopMenuOpen)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    isShopActive
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>🛒</span>
+                  <span className="hidden sm:inline">Shop</span>
+                  <span className="text-xs">▼</span>
+                </button>
+                {shopMenuOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-40 z-50">
+                    <Link
+                      href="/avatar-mall"
+                      onClick={() => setShopMenuOpen(false)}
+                      className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                        isActive('/avatar-mall')
+                          ? 'bg-amber-50 text-amber-700'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>🎭</span>
+                      Avatar Mall
+                    </Link>
+                    <Link
+                      href="/collectibles-mall"
+                      onClick={() => setShopMenuOpen(false)}
+                      className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                        isActive('/collectibles-mall')
+                          ? 'bg-amber-50 text-amber-700'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>🛍️</span>
+                      Collectibles Mall
+                    </Link>
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
 
@@ -78,7 +137,7 @@ export default function Header({ profile, avatar }: HeaderProps) {
               </span>
             </div>
 
-            <Link href="/dashboard" className="text-2xl" title={avatar?.name ?? 'Avatar'}>
+            <Link href="/profile" className="text-2xl hover:scale-110 transition-transform" title={avatar?.name ?? 'Profile'}>
               {avatar?.emoji ?? '👤'}
             </Link>
             <button

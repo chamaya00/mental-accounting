@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import DailyBonusButton from '@/components/DailyBonusButton'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 mb-8 text-white">
           <div className="flex items-center gap-4">
             <div className="text-5xl">{avatar?.emoji ?? '👤'}</div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold mb-1">
                 Welcome back, {profile?.display_name ?? 'Champion'}!
               </h1>
@@ -74,6 +75,11 @@ export default async function DashboardPage() {
               <p className="text-sm text-amber-200 mt-1">— {avatar?.name ?? 'Your Avatar'}</p>
             </div>
           </div>
+        </div>
+
+        {/* Daily Bonus */}
+        <div className="mb-8">
+          <DailyBonusButton lastClaimedAt={profile?.last_login_bonus_at ?? null} />
         </div>
 
         {/* Quick Actions */}
